@@ -1,4 +1,5 @@
 #include "Game.hpp"
+#include <SDL.h>
 #include <SDL_events.h>
 #include <SDL_video.h>
 
@@ -20,6 +21,7 @@ Game::~Game(void) {
 
 void Game::loop(void) {
 	int run = true;
+
 	while (run) {
 		while (SDL_PollEvent(&_ev)) {
 			switch (_ev.type) {
