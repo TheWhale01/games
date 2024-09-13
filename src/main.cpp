@@ -3,7 +3,7 @@
 
 int	main(int ac, char** av)
 {
-	Game game;
+	Game game(av[1]);
 
 	(void) ac;
 	(void) av;
