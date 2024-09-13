@@ -3,6 +3,9 @@
 
 int	main(int ac, char** av)
 {
-	(void)ac;(void)av;
 	Game game;
+
+	(void) ac;
+	(void) av;
+	game.loop();
 } 
