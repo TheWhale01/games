@@ -1,4 +1,5 @@
 #pragma once
+#include <SDL_render.h>
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <cstdlib>
@@ -11,6 +12,3 @@
 #define RGB_R 16
 #define RGB_G 8
 #define RGB_B 0
-
-
-size_t hex_to_rgb(size_t nb, int mode);
