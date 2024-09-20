@@ -12,6 +12,7 @@ include_directories(${SDL2_INCLUDE_DIRS})
 
 # CA MARCHE PAS !
 # add_executable(pacman ${SOURCES})
-add_executable(pacman src/main.cpp src/Game.cpp)
+add_executable(pacman src/main.cpp src/Game.cpp src/AGhost.cpp src/Blinky.cpp
+	src/Pinky.cpp src/Inky.cpp src/Clyde.cpp)
 target_include_directories(pacman PUBLIC includes)
 target_link_libraries(pacman SDL2::SDL2)
