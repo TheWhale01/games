@@ -32,11 +32,14 @@ namespace Entity {
 namespace Colors {
 	enum Colors {
 		Wall = 0x1919a6,
-		Fruit = 0xeea185,
+		Fruit = 0xdea185,
 		Dot = 0xdea185,
 		Pacman = 0xffff00,
-		Ghost = 0xfd0000,
 		Empty = 0x000000,
+		Blinky = 0xff0000,
+		Pinky = 0xffb8ff,
+		Inky = 0x00ffff,
+		Clyde = 0xffb852
 	};
 }
 

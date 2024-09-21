@@ -4,7 +4,7 @@
 
 class Clyde : public AGhost {
 	public:
-		Clyde(void);
+		Clyde(point_t const &pos);
 		~Clyde(void);
 
 	private:

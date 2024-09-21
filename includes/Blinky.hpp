@@ -4,7 +4,7 @@
 
 class Blinky : public AGhost {
 	public:
-		Blinky(void);
+		Blinky(point_t const &pos);
 		~Blinky(void);
 
 	private:

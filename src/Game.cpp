@@ -1,10 +1,12 @@
 #include "pacman.hpp"
 #include "Game.hpp"
-#include <SDL_events.h>
-#include <SDL_render.h>
-#include <SDL_timer.h>
+#include "Blinky.hpp"
+#include "Inky.hpp"
+#include "Clyde.hpp"
+#include "Pinky.hpp"
 
 Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_height(0), _w_width(0) {
+	_ghosts.reserve(4);
 	_load_map(map_path);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0
 	|| !(_window = SDL_CreateWindow("Pacman", 0, 0, _w_width, _w_height, SDL_WINDOW_SHOWN))
@@ -16,6 +18,8 @@ Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_heigh
 }
 
 Game::~Game(void) {
+	for (size_t i = 0; i < _ghosts.size(); i++)
+		delete _ghosts[i];
 	SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
 	_window = nullptr;
@@ -67,8 +71,22 @@ void Game::_draw_map(bool init) {
 					}
 					*c_it = Entity::Empty;
 					break;
+				// Replace this case by subtyping polymorphism
 				case Entity::Ghost:
-					SDL_SetRenderDrawColor(_renderer, (Colors::Ghost >> 16) & 0xff, (Colors::Ghost >> 8) & 0xff, Colors::Ghost & 0xff, 255);
+					if (init) {
+						point_t pos;
+
+						pos.x = rect.x;
+						pos.y = rect.y;
+						if (_ghosts.size() == 0)
+							_ghosts.push_back(new Blinky(pos));
+						else if (_ghosts.size() == 1)
+							_ghosts.push_back(new Inky(pos));
+						else if (_ghosts.size() == 2)
+							_ghosts.push_back(new Clyde(pos));
+						else if (_ghosts.size() == 3)
+							_ghosts.push_back(new Pinky(pos));
+					}
 					break;
 				default:
 					SDL_SetRenderDrawColor(_renderer, (Colors::Empty >> 16) & 0xff, (Colors::Empty >> 8) & 0xff, Colors::Empty & 0xff, 255);
@@ -88,7 +106,16 @@ void Game::_draw_map(bool init) {
 	SDL_RenderDrawRect(_renderer, &rect);
 	SDL_RenderFillRect(_renderer, &rect);
 	// Need to draw ghosts
+	
+	for (size_t i = 0; i < _ghosts.size(); i++) {
+		Colors::Colors color = _ghosts[i]->get_color();
 
+		rect.x = _ghosts[i]->get_pos().x;
+		rect.y = _ghosts[i]->get_pos().y;
+		SDL_SetRenderDrawColor(_renderer, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, 255);
+		SDL_RenderDrawRect(_renderer, &rect);
+		SDL_RenderFillRect(_renderer, &rect);
+	}
 	SDL_RenderPresent(_renderer);
 }
 

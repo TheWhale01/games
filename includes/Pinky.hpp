@@ -4,7 +4,7 @@
 
 class Pinky : public AGhost {
 	public:
-		Pinky(void);
+		Pinky(point_t const &pos);
 		~Pinky(void);
 
 	private:

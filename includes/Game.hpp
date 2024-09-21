@@ -1,5 +1,6 @@
 #pragma once
 #include "pacman.hpp"
+#include "AGhost.hpp"
 
 #define TILE_SIZE 32
 #define VELOCITY 32
@@ -18,8 +19,9 @@ class Game {
 		SDL_Event _ev;
 		size_t _w_height;
 		size_t _w_width;
-		std::vector<std::string> _map;
 		point_t _player;
+		std::vector<std::string> _map;
+		std::vector<AGhost*> _ghosts;
 
 		void _load_map(const char *map_path);
 		void _draw_map(bool init);

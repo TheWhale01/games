@@ -4,7 +4,7 @@
 
 class Inky : public AGhost {
 	public:
-		Inky(void);
+		Inky(point_t const &pos);
 		~Inky(void);
 
 	private:
