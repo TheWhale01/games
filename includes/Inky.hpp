@@ -7,6 +7,6 @@ class Inky : public AGhost {
 		Inky(point_t const &pos);
 		~Inky(void);
 
+		void move(const point_t &pacman_pos);
 	private:
-		void _move(const point_t &pacman_pos);
 };

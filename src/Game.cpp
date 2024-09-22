@@ -5,7 +5,8 @@
 #include "Clyde.hpp"
 #include "Pinky.hpp"
 
-Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_height(0), _w_width(0) {
+Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_height(0),
+	_w_width(0), _player(nullptr) {
 	_ghosts.reserve(4);
 	_load_map(map_path);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0
@@ -19,7 +20,10 @@ Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_heigh
 
 Game::~Game(void) {
 	for (size_t i = 0; i < _ghosts.size(); i++)
-		delete _ghosts[i];
+		if (_ghosts[i])
+			delete _ghosts[i];
+	if (_player)
+		delete _player;
 	SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
 	_window = nullptr;
@@ -65,19 +69,15 @@ void Game::_draw_map(bool init) {
 					SDL_SetRenderDrawColor(_renderer, (Colors::Dot >> 16) & 0xff, (Colors::Dot >> 8) & 0xff, Colors::Dot & 0xff, 255);
 					break;
 				case Entity::Pacman:
-					if (init) {
-						_player.x = rect.x;
-						_player.y = rect.y;
-					}
+					if (init)
+						_player = new Pacman({rect.x, rect.y});
 					*c_it = Entity::Empty;
 					break;
 				// Replace this case by subtyping polymorphism
 				case Entity::Ghost:
 					if (init) {
-						point_t pos;
+						point_t pos = {rect.x, rect.y};
 
-						pos.x = rect.x;
-						pos.y = rect.y;
 						if (_ghosts.size() == 0)
 							_ghosts.push_back(new Blinky(pos));
 						else if (_ghosts.size() == 1)
@@ -100,8 +100,8 @@ void Game::_draw_map(bool init) {
 		rect.y += TILE_SIZE;
 	}
 	// draw player
-	rect.x = _player.x;
-	rect.y = _player.y;
+	rect.x = _player->get_pos().x;
+	rect.y = _player->get_pos().y;
 	SDL_SetRenderDrawColor(_renderer, (Colors::Pacman >> 16) & 0xff, (Colors::Pacman >> 8) & 0xff, Colors::Pacman & 0xff, 255);
 	SDL_RenderDrawRect(_renderer, &rect);
 	SDL_RenderFillRect(_renderer, &rect);
@@ -120,7 +120,7 @@ void Game::_draw_map(bool init) {
 }
 
 void Game::_update_player_map_pos(void) {
-	_map[_player.y / TILE_SIZE][_player.x / TILE_SIZE] = Entity::Pacman;
+	_map[_player->get_pos().y / TILE_SIZE][_player->get_pos().x / TILE_SIZE] = Entity::Pacman;
 }
 
 void Game::loop(void) {
@@ -134,6 +134,10 @@ void Game::loop(void) {
 	frame_start = 0;
 	while (run) {
 		frame_start = SDL_GetTicks();
+		_player->set_next_pos();
+		if (_check_collisions()) {
+			_player->move(_player->get_pos());
+		}
 		_update_player_map_pos();
 		_draw_map(false);
 		while (SDL_PollEvent(&_ev)) {
@@ -142,9 +146,6 @@ void Game::loop(void) {
 					run = false;
 					break;
 				case SDL_KEYDOWN:
-					// Need to make pacman move alone
-					// The player only changes the direction
-					// where pacman goes
 					_handle_key();
 					break;
 				default:
@@ -160,37 +161,32 @@ void Game::loop(void) {
 }
 
 void Game::_handle_key(void) {
-	int new_pos;
-
-	new_pos = 0;
 	// In the future I will need to check for ghost position and state
 	switch (_ev.key.keysym.sym) {
-		// don't like this switch statement: too repetitive
 		case SDLK_UP:
-			new_pos = _player.y - TILE_SIZE;
-			if (new_pos >= 0
-				&& _map[new_pos / TILE_SIZE][_player.x / TILE_SIZE] != Entity::Wall)
-				_player.y = new_pos;
+			_player->set_way(false);
+			_player->set_direction(-1);
 			break;
 		case SDLK_DOWN:
-			new_pos = _player.y + TILE_SIZE;
-			if (static_cast<size_t>(new_pos) < _w_height
-				&& _map[new_pos / TILE_SIZE][_player.x / TILE_SIZE] != Entity::Wall)
-				_player.y = new_pos;
+			_player->set_way(false);
+			_player->set_direction(1);
 			break;
 		case SDLK_LEFT:
-			new_pos = _player.x - TILE_SIZE;
-			if (new_pos >= 0
-				&& _map[_player.y / TILE_SIZE][new_pos / TILE_SIZE] != Entity::Wall)
-				_player.x = new_pos;
+			_player->set_way(true);
+			_player->set_direction(-1);
 			break;
 		case SDLK_RIGHT:
-			new_pos = _player.x + TILE_SIZE;
-			if (static_cast<size_t>(new_pos) < _w_width
-				&& _map[_player.y / TILE_SIZE][new_pos / TILE_SIZE] != Entity::Wall)
-				_player.x = new_pos;
+			_player->set_way(true);
+			_player->set_direction(1);
 			break;
 		default:
 			break;
 	}
+	_player->set_next_pos();
+}
+
+bool Game::_check_collisions(void) const {
+	return _player->get_next_pos().x >= 0 && static_cast<size_t>(_player->get_next_pos().x) < _w_width
+		&& _player->get_next_pos().y >= 0 && static_cast<size_t>(_player->get_next_pos().y) < _w_height
+		&& _map[_player->get_next_pos().y / TILE_SIZE][_player->get_next_pos().x / TILE_SIZE] != Entity::Wall;
 }

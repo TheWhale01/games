@@ -7,6 +7,6 @@ class Pinky : public AGhost {
 		Pinky(point_t const &pos);
 		~Pinky(void);
 
+		void move(const point_t &pacman_pos);
 	private:
-		void _move(const point_t &pacman_pos);
 };

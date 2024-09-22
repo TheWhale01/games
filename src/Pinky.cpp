@@ -4,6 +4,6 @@
 Pinky::Pinky(point_t const &pos): AGhost(Colors::Pinky, pos) {}
 Pinky::~Pinky(void) {}
 
-void Pinky::_move(const point_t &pacman_pos) {
+void Pinky::move(const point_t &pacman_pos) {
 	(void)pacman_pos;
 }

@@ -9,10 +9,10 @@ class AGhost {
 		const point_t &get_pos(void) const;
 		const EntityState::EntityState &get_state(void) const;
 		const Colors::Colors &get_color(void) const;
-	private:
+
+		virtual void move(const point_t &pacman_pos) = 0;
+	protected:
 		point_t				_pos;
 		EntityState::EntityState	_state;
 		Colors::Colors			_color;
-
-		virtual void _move(const point_t &pacman_pos) = 0;
 };

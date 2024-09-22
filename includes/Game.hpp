@@ -1,10 +1,7 @@
 #pragma once
 #include "pacman.hpp"
 #include "AGhost.hpp"
-
-#define TILE_SIZE 32
-#define VELOCITY 32
-#define FPS 60
+#include "Pacman.hpp"
 
 class Game {
 	public:
@@ -19,7 +16,7 @@ class Game {
 		SDL_Event _ev;
 		size_t _w_height;
 		size_t _w_width;
-		point_t _player;
+		Pacman *_player;
 		std::vector<std::string> _map;
 		std::vector<AGhost*> _ghosts;
 
@@ -27,4 +24,5 @@ class Game {
 		void _draw_map(bool init);
 		void _update_player_map_pos(void);
 		void _handle_key(void);
+		bool _check_collisions(void) const;
 };

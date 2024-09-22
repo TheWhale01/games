@@ -9,13 +9,17 @@
 #include <SDL_video.h>
 #include <fstream>
 
+#define TILE_SIZE 32
+#define VELOCITY 3
+#define FPS 60
+
 #define RGB_R 16
 #define RGB_G 8
 #define RGB_B 0
 
 typedef struct {
-	size_t x;
-	size_t y;
+	int x;
+	int y;
 } point_t;
 
 namespace Entity {
