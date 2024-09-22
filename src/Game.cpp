@@ -161,6 +161,7 @@ void Game::loop(void) {
 }
 
 void Game::_handle_key(void) {
+	// Make pacman change direction automatically when it can
 	// In the future I will need to check for ghost position and state
 	switch (_ev.key.keysym.sym) {
 		case SDLK_UP:
@@ -186,7 +187,9 @@ void Game::_handle_key(void) {
 }
 
 bool Game::_check_collisions(void) const {
-	return _player->get_next_pos().x >= 0 && static_cast<size_t>(_player->get_next_pos().x) < _w_width
-		&& _player->get_next_pos().y >= 0 && static_cast<size_t>(_player->get_next_pos().y) < _w_height
-		&& _map[_player->get_next_pos().y / TILE_SIZE][_player->get_next_pos().x / TILE_SIZE] != Entity::Wall;
+	// Change pacman position when out of window borders
+	return _map[_player->get_next_pos().y / TILE_SIZE][_player->get_next_pos().x / TILE_SIZE] != Entity::Wall
+		&& _map[(_player->get_next_pos().y - 1) / TILE_SIZE + 1][_player->get_next_pos().x / TILE_SIZE] != Entity::Wall
+		&& _map[_player->get_next_pos().y / TILE_SIZE][(_player->get_next_pos().x - 1) / TILE_SIZE + 1] != Entity::Wall
+		&& _map[(_player->get_next_pos().y - 1)/ TILE_SIZE + 1][(_player->get_next_pos().x - 1) / TILE_SIZE + 1] != Entity::Wall;
 }

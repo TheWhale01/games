@@ -10,7 +10,7 @@
 #include <fstream>
 
 #define TILE_SIZE 32
-#define VELOCITY 3
+#define VELOCITY 4
 #define FPS 60
 
 #define RGB_R 16

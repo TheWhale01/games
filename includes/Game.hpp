@@ -14,8 +14,8 @@ class Game {
 		SDL_Window *_window;
 		SDL_Renderer *_renderer;
 		SDL_Event _ev;
-		size_t _w_height;
-		size_t _w_width;
+		int _w_height;
+		int _w_width;
 		Pacman *_player;
 		std::vector<std::string> _map;
 		std::vector<AGhost*> _ghosts;
