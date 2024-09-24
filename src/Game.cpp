@@ -134,10 +134,8 @@ void Game::loop(void) {
 	frame_start = 0;
 	while (run) {
 		frame_start = SDL_GetTicks();
-		_player->set_next_pos();
-		if (_check_collisions()) {
+		if (_check_collisions())
 			_player->move(_player->get_pos());
-		}
 		_update_player_map_pos();
 		_draw_map(false);
 		while (SDL_PollEvent(&_ev)) {
@@ -165,31 +163,71 @@ void Game::_handle_key(void) {
 	// In the future I will need to check for ghost position and state
 	switch (_ev.key.keysym.sym) {
 		case SDLK_UP:
-			_player->set_way(false);
-			_player->set_direction(-1);
+			_player->next_dir = Directions::UP;
 			break;
 		case SDLK_DOWN:
-			_player->set_way(false);
-			_player->set_direction(1);
+			_player->next_dir = Directions::DOWN;
 			break;
 		case SDLK_LEFT:
-			_player->set_way(true);
-			_player->set_direction(-1);
+			_player->next_dir = Directions::LEFT;
 			break;
 		case SDLK_RIGHT:
-			_player->set_way(true);
-			_player->set_direction(1);
+			_player->next_dir = Directions::RIGHT;
 			break;
 		default:
 			break;
 	}
-	_player->set_next_pos();
 }
 
 bool Game::_check_collisions(void) const {
-	// Change pacman position when out of window borders
-	return _map[_player->get_next_pos().y / TILE_SIZE][_player->get_next_pos().x / TILE_SIZE] != Entity::Wall
-		&& _map[(_player->get_next_pos().y - 1) / TILE_SIZE + 1][_player->get_next_pos().x / TILE_SIZE] != Entity::Wall
-		&& _map[_player->get_next_pos().y / TILE_SIZE][(_player->get_next_pos().x - 1) / TILE_SIZE + 1] != Entity::Wall
-		&& _map[(_player->get_next_pos().y - 1)/ TILE_SIZE + 1][(_player->get_next_pos().x - 1) / TILE_SIZE + 1] != Entity::Wall;
+	point_t new_pos = _player->get_pos();
+	bool result = false;
+
+	if (_player->next_dir != _player->dir) {
+		switch (_player->next_dir) {
+			case Directions::UP:
+				new_pos.y -= VELOCITY;
+				break;
+			case Directions::DOWN:
+				new_pos.y += VELOCITY;
+				break;
+			case Directions::LEFT:
+				new_pos.x -= VELOCITY;
+				break;
+			case Directions::RIGHT:
+				new_pos.x += VELOCITY;
+				break;
+			default:
+				break;
+		}
+		if (_map[new_pos.y / TILE_SIZE][new_pos.x / TILE_SIZE] != Entity::Wall
+			&& _map[(new_pos.y - 1) / TILE_SIZE + 1][new_pos.x / TILE_SIZE] != Entity::Wall
+			&& _map[new_pos.y / TILE_SIZE][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall
+			&& _map[(new_pos.y - 1)/ TILE_SIZE + 1][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall) {
+			_player->dir = _player->next_dir;
+			return true;
+		}
+	}
+	new_pos = _player->get_pos();
+	switch (_player->dir) {
+		case Directions::UP:
+			new_pos.y -= VELOCITY;
+			break;
+		case Directions::DOWN:
+			new_pos.y += VELOCITY;
+			break;
+		case Directions::LEFT:
+			new_pos.x -= VELOCITY;
+			break;
+		case Directions::RIGHT:
+			new_pos.x += VELOCITY;
+			break;
+		default:
+			break;
+	}
+	result = _map[new_pos.y / TILE_SIZE][new_pos.x / TILE_SIZE] != Entity::Wall
+		&& _map[(new_pos.y - 1) / TILE_SIZE + 1][new_pos.x / TILE_SIZE] != Entity::Wall
+		&& _map[new_pos.y / TILE_SIZE][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall
+		&& _map[(new_pos.y - 1)/ TILE_SIZE + 1][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall;
+	return result;
 }

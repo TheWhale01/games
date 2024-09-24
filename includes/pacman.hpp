@@ -53,3 +53,13 @@ namespace EntityState {
 		Afraid
 	};
 }
+
+namespace Directions {
+	enum Directions {
+		UP,
+		DOWN,
+		LEFT,
+		RIGHT,
+	};
+}
+
