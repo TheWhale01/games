@@ -8,6 +8,7 @@
 #include <SDL_events.h>
 #include <SDL_video.h>
 #include <fstream>
+#include <algorithm>
 
 #define TILE_SIZE 32
 #define VELOCITY 4

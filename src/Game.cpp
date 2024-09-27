@@ -4,9 +4,10 @@
 #include "Inky.hpp"
 #include "Clyde.hpp"
 #include "Pinky.hpp"
+#include <SDL_rect.h>
 
 Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_height(0),
-	_w_width(0), _player(nullptr) {
+	_w_width(0), _run(true), _player(nullptr) {
 	_ghosts.reserve(4);
 	_load_map(map_path);
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0
@@ -15,7 +16,7 @@ Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_heigh
 		std::cerr << "Error initializing SDL: " << SDL_GetError() << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	_draw_map(true);
+	_draw_map();
 }
 
 Game::~Game(void) {
@@ -31,117 +32,119 @@ Game::~Game(void) {
 	SDL_Quit();
 }
 
+void Game::_draw_rect(SDL_Rect const &rect, int color) {
+	SDL_SetRenderDrawColor(_renderer, (color >> 16) & 0xff,
+			(color >> 8) & 0xff, color & 0xff, 255);
+	SDL_RenderDrawRect(_renderer, &rect);
+	SDL_RenderFillRect(_renderer, &rect);
+}
+
+void Game::_draw_ghosts(void) {
+	SDL_Rect rect;
+
+	rect.w = TILE_SIZE, rect.h = TILE_SIZE;
+	for (size_t i = 0; i < _ghosts.size(); i++) {
+		rect.x = _ghosts[i]->get_pos().x,
+			rect.y = _ghosts[i]->get_pos().y;
+		_draw_rect(rect, _ghosts[i]->get_color());
+	}
+}
+
+void Game::_draw_pacman(void) {
+	SDL_Rect rect = {_player->get_pos().x, _player->get_pos().y,
+		TILE_SIZE, TILE_SIZE};
+	_draw_rect(rect, _player->get_color());
+}
+
 void Game::_load_map(const char *map_path) {
 	std::ifstream mapfile;
 	std::string line;
+	point_t pos = {0, 0};
 
 	mapfile.open(map_path);
-	while (getline(mapfile, line)) {
+	for (size_t nb_line = 0; getline(mapfile, line); nb_line++) {
 		_map.push_back(line);
-		_w_height++;
+		_w_width = std::max(static_cast<size_t>(_w_width),
+		      _map[_map.size() - 1].size() * TILE_SIZE);
+		_w_height += TILE_SIZE;
+		for (size_t i = 0; i < line.size(); i++) {
+			pos.x = i * TILE_SIZE;
+			pos.y = nb_line * TILE_SIZE;
+			if (line[i] == Entity::Ghost) {
+				// Don't like this
+				if (_ghosts.size() == 0)
+					_ghosts.push_back(new Blinky(pos));
+				else if (_ghosts.size() == 1)
+					_ghosts.push_back(new Inky(pos));
+				else if (_ghosts.size() == 2)
+					_ghosts.push_back(new Clyde(pos));
+				else if (_ghosts.size() == 3)
+					_ghosts.push_back(new Pinky(pos));
+			}
+			else if (line[i] == Entity::Pacman)
+				_player = new Pacman(pos);
+		}
 	}
 	mapfile.close();
 	if (_map.empty()) {
 		std::cerr << "Map is empty" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	_w_width = _map[0].size() * TILE_SIZE;
-	_w_height *= TILE_SIZE;
 }
 
-void Game::_draw_map(bool init) {
-	SDL_Rect rect;
+void Game::_draw_map() {
+	SDL_Rect rect = {0, 0, TILE_SIZE, TILE_SIZE};
+	int color = Colors::Empty;
 
-	rect.x = 0;
-	rect.y = 0;
-	rect.w = TILE_SIZE;
-	rect.h = TILE_SIZE;
-	for(std::vector<std::string>::iterator m_it = _map.begin(); m_it != _map.end(); m_it++) {
-		for (std::string::iterator c_it =m_it->begin(); c_it != m_it->end(); c_it++) {
-			switch (*c_it) {
+	for(size_t i = 0; i < _map.size(); i++) {
+		for (size_t j = 0; j < _map[i].size(); j++) {
+			switch (_map[i][j]) {
 				case Entity::Wall:
-					SDL_SetRenderDrawColor(_renderer, (Colors::Wall >> 16) & 0xff, (Colors::Wall >> 8) & 0xff, Colors::Wall & 0xff, 255);
+					color = Colors::Wall;
 					break;
 				case Entity::Fruit:
-					SDL_SetRenderDrawColor(_renderer, (Colors::Fruit >> 16) & 0xff, (Colors::Fruit >> 8) & 0xff, Colors::Fruit & 0xff, 255);
+					color = Colors::Fruit;
 					break;
 				case Entity::Dot:
-					SDL_SetRenderDrawColor(_renderer, (Colors::Dot >> 16) & 0xff, (Colors::Dot >> 8) & 0xff, Colors::Dot & 0xff, 255);
-					break;
-				case Entity::Pacman:
-					if (init)
-						_player = new Pacman({rect.x, rect.y});
-					*c_it = Entity::Empty;
-					break;
-				// Replace this case by subtyping polymorphism
-				case Entity::Ghost:
-					if (init) {
-						point_t pos = {rect.x, rect.y};
-
-						if (_ghosts.size() == 0)
-							_ghosts.push_back(new Blinky(pos));
-						else if (_ghosts.size() == 1)
-							_ghosts.push_back(new Inky(pos));
-						else if (_ghosts.size() == 2)
-							_ghosts.push_back(new Clyde(pos));
-						else if (_ghosts.size() == 3)
-							_ghosts.push_back(new Pinky(pos));
-					}
+					color = Colors::Dot;
 					break;
 				default:
-					SDL_SetRenderDrawColor(_renderer, (Colors::Empty >> 16) & 0xff, (Colors::Empty >> 8) & 0xff, Colors::Empty & 0xff, 255);
+					color = Colors::Empty;
 					break;
 			}
-			SDL_RenderDrawRect(_renderer, &rect);
-			SDL_RenderFillRect(_renderer, &rect);
+			_draw_rect(rect, color);
 			rect.x += TILE_SIZE;
 		}
 		rect.x = 0;
 		rect.y += TILE_SIZE;
 	}
-	// draw player
-	rect.x = _player->get_pos().x;
-	rect.y = _player->get_pos().y;
-	SDL_SetRenderDrawColor(_renderer, (Colors::Pacman >> 16) & 0xff, (Colors::Pacman >> 8) & 0xff, Colors::Pacman & 0xff, 255);
-	SDL_RenderDrawRect(_renderer, &rect);
-	SDL_RenderFillRect(_renderer, &rect);
-	// Need to draw ghosts
-	
-	for (size_t i = 0; i < _ghosts.size(); i++) {
-		Colors::Colors color = _ghosts[i]->get_color();
-
-		rect.x = _ghosts[i]->get_pos().x;
-		rect.y = _ghosts[i]->get_pos().y;
-		SDL_SetRenderDrawColor(_renderer, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, 255);
-		SDL_RenderDrawRect(_renderer, &rect);
-		SDL_RenderFillRect(_renderer, &rect);
-	}
+	_draw_ghosts();
+	_draw_pacman();
 	SDL_RenderPresent(_renderer);
 }
 
 void Game::_update_player_map_pos(void) {
-	_map[_player->get_pos().y / TILE_SIZE][_player->get_pos().x / TILE_SIZE] = Entity::Pacman;
+	_map[_player->get_pos().y / TILE_SIZE]
+		[_player->get_pos().x / TILE_SIZE] = Entity::Pacman;
 }
 
 void Game::loop(void) {
 	int		frame_time;
-	bool		run;
 	Uint32		frame_start;
 	const int	frame_delay = 1000 / FPS;
 
-	run = true;
 	frame_time = 0;
 	frame_start = 0;
-	while (run) {
+	while (_run) {
 		frame_start = SDL_GetTicks();
 		if (_check_collisions())
 			_player->move(_player->get_pos());
 		_update_player_map_pos();
-		_draw_map(false);
+		_draw_map();
 		while (SDL_PollEvent(&_ev)) {
 			switch (_ev.type) {
 				case SDL_QUIT:
-					run = false;
+					_run = false;
 					break;
 				case SDL_KEYDOWN:
 					_handle_key();
@@ -150,27 +153,32 @@ void Game::loop(void) {
 					break;
 			}
 		}
-		if (run) {
-			frame_time = SDL_GetTicks() - frame_start;
-			if (frame_delay > frame_time)
-				SDL_Delay(frame_delay - frame_time);
+		if (!_run) {
+			// Show game over animation
+			return ;
 		}
+		frame_time = SDL_GetTicks() - frame_start;
+		if (frame_delay > frame_time)
+			SDL_Delay(frame_delay - frame_time);
 	}
 }
 
 void Game::_handle_key(void) {
-	// Make pacman change direction automatically when it can
 	// In the future I will need to check for ghost position and state
 	switch (_ev.key.keysym.sym) {
+		case SDLK_w:
 		case SDLK_UP:
 			_player->next_dir = Directions::UP;
 			break;
+		case SDLK_s:
 		case SDLK_DOWN:
 			_player->next_dir = Directions::DOWN;
 			break;
+		case SDLK_a:
 		case SDLK_LEFT:
 			_player->next_dir = Directions::LEFT;
 			break;
+		case SDLK_d:
 		case SDLK_RIGHT:
 			_player->next_dir = Directions::RIGHT;
 			break;
@@ -179,37 +187,17 @@ void Game::_handle_key(void) {
 	}
 }
 
-bool Game::_check_collisions(void) const {
-	point_t new_pos = _player->get_pos();
-	bool result = false;
+bool Game::_check_walls(const point_t &pos) const {
+	return _map[pos.y / TILE_SIZE][pos.x / TILE_SIZE] != Entity::Wall
+		&& _map[(pos.y - 1) / TILE_SIZE + 1][pos.x / TILE_SIZE] != Entity::Wall
+		&& _map[pos.y / TILE_SIZE][(pos.x - 1) / TILE_SIZE + 1] != Entity::Wall
+		&& _map[(pos.y - 1)/ TILE_SIZE + 1][(pos.x - 1) / TILE_SIZE + 1] != Entity::Wall;
+}
 
-	if (_player->next_dir != _player->dir) {
-		switch (_player->next_dir) {
-			case Directions::UP:
-				new_pos.y -= VELOCITY;
-				break;
-			case Directions::DOWN:
-				new_pos.y += VELOCITY;
-				break;
-			case Directions::LEFT:
-				new_pos.x -= VELOCITY;
-				break;
-			case Directions::RIGHT:
-				new_pos.x += VELOCITY;
-				break;
-			default:
-				break;
-		}
-		if (_map[new_pos.y / TILE_SIZE][new_pos.x / TILE_SIZE] != Entity::Wall
-			&& _map[(new_pos.y - 1) / TILE_SIZE + 1][new_pos.x / TILE_SIZE] != Entity::Wall
-			&& _map[new_pos.y / TILE_SIZE][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall
-			&& _map[(new_pos.y - 1)/ TILE_SIZE + 1][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall) {
-			_player->dir = _player->next_dir;
-			return true;
-		}
-	}
-	new_pos = _player->get_pos();
-	switch (_player->dir) {
+point_t Game::_get_new_pos(point_t const &base_pos, int direction) const {
+	point_t new_pos = base_pos;
+
+	switch (direction) {
 		case Directions::UP:
 			new_pos.y -= VELOCITY;
 			break;
@@ -225,9 +213,19 @@ bool Game::_check_collisions(void) const {
 		default:
 			break;
 	}
-	result = _map[new_pos.y / TILE_SIZE][new_pos.x / TILE_SIZE] != Entity::Wall
-		&& _map[(new_pos.y - 1) / TILE_SIZE + 1][new_pos.x / TILE_SIZE] != Entity::Wall
-		&& _map[new_pos.y / TILE_SIZE][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall
-		&& _map[(new_pos.y - 1)/ TILE_SIZE + 1][(new_pos.x - 1) / TILE_SIZE + 1] != Entity::Wall;
-	return result;
+	return new_pos;
+}
+
+bool Game::_check_collisions(void) const {
+	point_t new_pos;
+
+	if (_player->next_dir != _player->dir) {
+			new_pos = _get_new_pos(_player->get_pos(), _player->next_dir);
+			if (_check_walls(new_pos)) {
+				_player->dir = _player->next_dir;
+				return true;
+		}
+	}
+	new_pos = _get_new_pos(_player->get_pos(), _player->dir);
+	return _check_walls(new_pos);
 }
