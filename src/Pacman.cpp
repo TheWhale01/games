@@ -6,7 +6,6 @@ Pacman::Pacman(point_t const &pos): AGhost(Colors::Pacman, pos),
 Pacman::~Pacman(void) {}
 
 void Pacman::check_borders(int w, int h) {
-	std::cout << "DEBUG: " << _pos.x << ", " << _pos.y << std::endl;
 	if (_pos.x + TILE_SIZE > w)
 		_pos.x = 0;
 	else if (_pos.x <= 0)
