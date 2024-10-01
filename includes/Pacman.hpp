@@ -12,4 +12,5 @@ class Pacman : public AGhost {
 	
 		void move(point_t const &pacman_pos);
 		void update_dir(void);
+		void check_borders(int w, int h);
 };

@@ -137,8 +137,10 @@ void Game::loop(void) {
 	frame_start = 0;
 	while (_run) {
 		frame_start = SDL_GetTicks();
-		if (_check_collisions())
+		if (_check_collisions()) {
 			_player->move(_player->get_pos());
+			_player->check_borders(_w_width, _w_height);
+		}
 		_update_player_map_pos();
 		_draw_map();
 		while (SDL_PollEvent(&_ev)) {
