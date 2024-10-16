@@ -3,9 +3,16 @@
 
 int	main(int ac, char** av)
 {
-	Game game(av[1]);
-
 	(void) ac;
 	(void) av;
-	game.loop();
+
+	// Don't like this
+	try {
+		Game game(av[1]);
+		return game.loop();
+	}
+	catch (const std::exception &e) {
+		std::cerr << e.what() << std::endl;
+	}
+	return EXIT_FAILURE;
 } 

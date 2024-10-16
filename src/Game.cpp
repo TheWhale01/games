@@ -4,17 +4,26 @@
 #include "Inky.hpp"
 #include "Clyde.hpp"
 #include "Pinky.hpp"
-#include <SDL_rect.h>
+
+Game::GameException::GameException(const char *str): _str(str) {}
+Game::GameException::GameException(std::string const &str): _str(str.c_str()) {}
+Game::GameException::~GameException(void) {}
+
+const char *Game::GameException::what(void) const throw() {
+	return _str;
+}
 
 Game::Game(const char *map_path): _window(nullptr), _renderer(nullptr), _w_height(0),
-	_w_width(0), _run(true), _player(nullptr) {
+	_w_width(0), _run(true),  _player(nullptr) {
 	_ghosts.reserve(4);
-	_load_map(map_path);
+	if (!_load_map(map_path))
+		throw GameException("Non valid map");
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0
 	|| !(_window = SDL_CreateWindow("Pacman", 0, 0, _w_width, _w_height, SDL_WINDOW_SHOWN))
 	|| !(_renderer = SDL_CreateRenderer(_window, 0, 0))) {
-		std::cerr << "Error initializing SDL: " << SDL_GetError() << std::endl;
-		exit(EXIT_FAILURE);
+		std::string str = "Error initializing SDL: ";
+		str += SDL_GetError();
+		throw Game::GameException(str);
 	}
 	_draw_map();
 }
@@ -27,9 +36,9 @@ Game::~Game(void) {
 		delete _player;
 	SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
+	SDL_Quit();
 	_window = nullptr;
 	_renderer = nullptr;
-	SDL_Quit();
 }
 
 void Game::_draw_rect(SDL_Rect const &rect, int color) {
@@ -56,7 +65,7 @@ void Game::_draw_pacman(void) {
 	_draw_rect(rect, _player->get_color());
 }
 
-void Game::_load_map(const char *map_path) {
+bool Game::_load_map(const char *map_path) {
 	std::ifstream mapfile;
 	std::string line;
 	point_t pos = {0, 0};
@@ -86,10 +95,7 @@ void Game::_load_map(const char *map_path) {
 		}
 	}
 	mapfile.close();
-	if (_map.empty()) {
-		std::cerr << "Map is empty" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	return !_map.empty();
 }
 
 void Game::_draw_map() {
@@ -124,11 +130,15 @@ void Game::_draw_map() {
 }
 
 void Game::_update_player_map_pos(void) {
-	_map[_player->get_pos().y / TILE_SIZE]
-		[_player->get_pos().x / TILE_SIZE] = Entity::Pacman;
+	point_t pos = {_player->get_pos().x / TILE_SIZE, _player->get_pos().y / TILE_SIZE};
+
+	if (_player->get_pos().y % TILE_SIZE == 0
+		&& _player->get_pos().x % TILE_SIZE == 0
+		&& (_map[pos.y][pos.x] == Entity::Dot || _map[pos.y][pos.x] == Entity::Fruit))
+		_map[pos.y][pos.x] = Entity::Pacman;
 }
 
-void Game::loop(void) {
+int Game::loop(void) {
 	int		frame_time;
 	Uint32		frame_start;
 	const int	frame_delay = 1000 / FPS;
@@ -137,12 +147,15 @@ void Game::loop(void) {
 	frame_start = 0;
 	while (_run) {
 		frame_start = SDL_GetTicks();
+		if (_check_ghosts_collisions())
+			return EXIT_FAILURE;
 		if (_check_collisions()) {
 			_player->move(_player->get_pos());
 			_player->check_borders(_w_width, _w_height);
 		}
-		_update_player_map_pos();
 		_draw_map();
+		_update_player_map_pos();
+		std::cout << "pos_x: " << _player->get_pos().x << std::endl << "pos_y: " << _player->get_pos().y << std::endl << std::endl;
 		while (SDL_PollEvent(&_ev)) {
 			switch (_ev.type) {
 				case SDL_QUIT:
@@ -155,14 +168,13 @@ void Game::loop(void) {
 					break;
 			}
 		}
-		if (!_run) {
-			// Show game over animation
-			return ;
+		if (_run) {
+			frame_time = SDL_GetTicks() - frame_start;
+			if (frame_delay > frame_time)
+				SDL_Delay(frame_delay - frame_time);
 		}
-		frame_time = SDL_GetTicks() - frame_start;
-		if (frame_delay > frame_time)
-			SDL_Delay(frame_delay - frame_time);
 	}
+	return EXIT_SUCCESS;
 }
 
 void Game::_handle_key(void) {
@@ -230,4 +242,11 @@ bool Game::_check_collisions(void) const {
 	}
 	new_pos = _get_new_pos(_player->get_pos(), _player->dir);
 	return _check_walls(new_pos);
+}
+
+bool Game::_check_ghosts_collisions(void) const {
+	return _map[_player->get_pos().y / TILE_SIZE][_player->get_pos().x / TILE_SIZE] == Entity::Ghost
+		&& _map[(_player->get_pos().y - 1) / TILE_SIZE + 1][_player->get_pos().x / TILE_SIZE] == Entity::Ghost
+		&& _map[_player->get_pos().y / TILE_SIZE][(_player->get_pos().x - 1) / TILE_SIZE + 1] == Entity::Ghost
+		&& _map[(_player->get_pos().y - 1)/ TILE_SIZE + 1][(_player->get_pos().x - 1) / TILE_SIZE + 1] == Entity::Ghost;
 }
